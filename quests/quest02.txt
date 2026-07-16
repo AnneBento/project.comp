@@ -1,0 +1,9 @@
+%% -- QUESTÃO 02 --
+
+\quest Considere a transformação linear \( T: \mathbb{R}^2 \to \mathbb{R}^2 \) dada por \( T(x, y) = (x + y, 0) \). Marque a alternativa correta sobre o núcleo de \( T \) (denotado por \( \text{Ker}(T) \)):
+
+\item{1, c} \( \text{Ker}(T) = \{ (x, y) \in \mathbb{R}^2 : x + y = 0 \} \)(Gabarito)
+\item{2, e} \( \text{Ker}(T) = \{ (0, 0) \} \).
+\item{3, e} \( \text{Ker}(T) = \{ (x, y) \in \mathbb{R}^2 : y = 0 \} \).
+\item{4, e} A dimensão de \( \text{Ker}(T) \) é igual a 2.
+\item{5, e} A transformação linear \( T \) é um isomorfismo.

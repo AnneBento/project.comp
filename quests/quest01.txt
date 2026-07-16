@@ -1,0 +1,9 @@
+%% -- QUESTÃO 01 --
+
+\quest Sejam \( A \) e \( B \) dois subespaços de \( \mathbb{R}^{2} \). Marque a alternativa \textbf{INCORRETA}:.
+
+\item{1, c} \( A \cup B \) é sempre um subespaço de \( \mathbb{R}^{2} \).(Gabarito)
+\item{2, e} \( A \cap B \) é sempre um subespaço de \( \mathbb{R}^{2} \).
+\item{3, e} \( A + B \) é sempre um subespaço de \( \mathbb{R}^{2} \).
+\item{4, e} Se \( A \) e \( B \) são retas que passam pela origem, sua interseção é um subespaço.
+\item{5, e} O vetor nulo pertence ao conjunto \( A \cap B \).

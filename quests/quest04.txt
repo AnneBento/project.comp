@@ -1,0 +1,9 @@
+%% -- QUESTÃO 04 --
+
+\quest Seja \( M \) uma matriz quadrada de ordem \( n \times n \). Se o determinante de \( M \) é igual a zero (\( \det(M) = 0 \)), marque a alternativa correta:
+
+\item{1, c} O sistema linear homogêneo \( M X = 0 \) possui infinitas soluções.(Gabarito)
+\item{2, e} A matriz quadrada \( M \) é invertível.
+\item{3, e} As colunas de \( M \) são linearmente independentes
+\item{4, e} O posto da matriz \( M \) é igual a \( n \).
+\item{5, e} O operador linear associado a \( M \) é injetivo.

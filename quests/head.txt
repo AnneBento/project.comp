@@ -1,0 +1,6 @@
+\begin{flushleft}
+Universidade Federal do Ceará\\
+Campus de Quixadá\\
+Professor Ricardo Reis\\
+Prova de teste\\
+\end{flushleft}

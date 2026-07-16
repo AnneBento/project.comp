@@ -1,0 +1,9 @@
+%% -- QUESTÃO 03 --
+
+\quest Sobre um conjunto de vetores \( \{v_1, v_2, v_3\} \) em \( \mathbb{R}^3 \) que é Linearmente Dependente (LD), marque a alternativa correta:
+
+\item{1, c} Pelo menos um dos vetores pode ser escrito como combinação linear dos outros.(Gabarito)
+\item{2, e} Nenhum dos vetores pode ser o vetor nulo.
+\item{3, e} O conjunto necessariamente gera todo o espaço \( \mathbb{R}^3 \).
+\item{4, e} Eles obrigatoriamente formam uma base para o espaço \( \mathbb{R}^3 \).
+\item{5, e} A equação vetorial \( c_1 v_1 + c_2 v_2 + c_3 v_3 = 0 \) possui apenas a solução trivial.
