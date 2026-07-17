@@ -74,11 +74,9 @@ def get_correct_answers(quests_dir):
 # NOVO COMANDO: --create (Cria a pasta, head, tail e modelos de questões)
 # =====================================================================
 def cmd_create():
-    # 1. Garante a existência da pasta quests/ silenciosamente
     if not os.path.exists(PATHS['QUESTS_DIR']):
         os.makedirs(PATHS['QUESTS_DIR'])
 
-    # 2. Pergunta a quantidade de forma direta
     while True:
         try:
             num_questoes = int(input("Quantas questões você deseja para esta prova? "))
@@ -88,7 +86,6 @@ def cmd_create():
         except ValueError:
             print("[-] Digite apenas números inteiros.")
 
-    # 3. Cria head.txt e tail.txt silenciosamente se não existirem
     head_path = os.path.join(PATHS['QUESTS_DIR'], "head.txt")
     if not os.path.exists(head_path):
         with open(head_path, 'w', encoding='utf-8') as f:
@@ -104,11 +101,9 @@ def cmd_create():
         with open(tail_path, 'w', encoding='utf-8') as f:
             f.write("% Rodapé LaTeX\n\\vspace{0.5cm}\\centerline{\\textbf{Fim da Prova!}}\n\\end{document}\n")
 
-    # 4. Conta quantas questões JÁ EXISTEM fisicamente na pasta
     existentes = sorted([f for f in os.listdir(PATHS['QUESTS_DIR']) if f.startswith("quest") and f.endswith(".txt")])
     qtd_existente = len(existentes)
 
-    # 5. Aplica a lógica inteligente de incremento e gera a mensagem curta
     if qtd_existente > 0:
         if num_questoes > qtd_existente:
             adicionais = num_questoes - qtd_existente
@@ -118,7 +113,6 @@ def cmd_create():
     else:
         print(f"[+] Criando {num_questoes} novas questões.")
 
-    # 6. Cria apenas os arquivos que estão faltando (sem sobrescrever nada!)
     for i in range(1, num_questoes + 1):
         q_filename = f"quest{i:02d}.txt"
         q_path = os.path.join(PATHS['QUESTS_DIR'], q_filename)
@@ -177,8 +171,6 @@ def cmd_exams():
         print("[-] Erro: Nenhuma questão encontrada na pasta 'quests/'.")
         return
 
-    # PREÂMBULO LIMPO: Força a numeração das questões para Arábico (1, 2, 3...)
-    # e das alternativas para Letras minúsculas (a, b, c...) sem herdar estilos
     tex_output = """\\documentclass[10pt,a4paper,twocolumn]{report}
 \\usepackage[utf8]{inputenc}
 \\usepackage[portuguese,brazilian]{babel}
@@ -199,24 +191,29 @@ def cmd_exams():
         nome = student[1]
         serial = f"{idx+1:02d}"
         
-        # Cabeçalho da Prova individual
         tex_output += f"\\noindent\\textbf{{SERIAL DA PROVA: {serial}}} \\hfill \\textbf{{Álgebra Linear}}\\\\\n"
         tex_output += "\\rule{\\linewidth}{0.2mm}\\\\\n" 
         tex_output += head_content + "\n"
         
-        # Lista de questões isolada por aluno (garante numeração sempre arábica 1, 2, 3)
         tex_output += " \\begin{enumerate}[label=\\arabic*., ref=\\arabic*]\n"
         version_map = {}
         
-        for q_file in q_files:
+        # -------------------------------------------------------------
+        # MUDANÇA AQUI: Clonamos e embaralhamos as QUESTÕES para cada aluno
+        # -------------------------------------------------------------
+        shuffled_q_files = list(q_files)
+        random.shuffle(shuffled_q_files)
+        visual_order = [] # Guarda a sequência visual para a correção
+        
+        for q_file in shuffled_q_files:
             q_num = q_file.replace("quest", "").replace(".txt", "")
             q_data = parse_question_file(PATHS['QUESTS_DIR'], q_file)
             
             if not q_data:
                 continue
                 
+            visual_order.append(q_num)
             tex_output += f"    \\item {q_data['enunciado']}\n"
-            # Lista de alternativas isolada (garante alternativas sempre a, b, c, d, e)
             tex_output += "    \\begin{enumerate}[label=\\alph*)]\n"
             
             alts = list(q_data['alternativas'])
@@ -232,15 +229,8 @@ def cmd_exams():
             tex_output += "    \\end{enumerate} \n"
             version_map[q_num] = student_q_map
             
-        d['VERSIONS'][serial] = {
-            'nome': nome,
-            'matricula': matricula,
-            'map': version_map
-        }
-        
         tex_output += " \\end{enumerate}\n"
         
-        # Identificação e tabela de gabarito para preenchimento no rodapé
         tex_output += "\n\\vspace{0.3cm}\n"
         tex_output += f"\\noindent Matrícula: {matricula}\\\\ Nome: {nome} \\\\ Serial da Prova: \\textbf{{{serial}}}\\\\\n"
         tex_output += "\\begin{tabular}{|" + "|".join(["l"] * len(q_files)) + "|}\\hline\n"
@@ -248,15 +238,17 @@ def cmd_exams():
         tex_output += "  &  ".join([" " * len(q_files)]) + " \\\\ \\hline \n"
         tex_output += "\\end{tabular}\n\n"
         
-        # ADICIONA O FIM DA PROVA (tail.txt) INDIVIDUALMENTE AQUI!
-        # Removendo marcas que possam fechar o documento prematuramente
         tail_clean = tail_content.replace("\\end{document}", "")
         tex_output += tail_clean + "\n"
-        
-        # Força quebra de página de forma limpa para o próximo aluno
         tex_output += "\\clearpage\n\n"
 
-    # Encerra o documento LaTeX global
+        d['VERSIONS'][serial] = {
+            'nome': nome,
+            'matricula': matricula,
+            'map': version_map,
+            'order': visual_order # Salvamos a ordem das questões deste aluno
+        }
+
     tex_output += "\\end{document}\n"
     
     with open(PATHS['PROVAS'], 'w', encoding='utf-8') as f:
@@ -297,10 +289,15 @@ def cmd_report():
         mapa_questoes = v_info['map']
         respostas_aluno = d.get('SUBMITS', {}).get(serial, [])
         
+        # -------------------------------------------------------------
+        # MUDANÇA AQUI: Corrigimos seguindo a ordem visual do aluno
+        # -------------------------------------------------------------
+        ordem_questoes = v_info.get('order', sorted(mapa_questoes.keys()))
+        
         acertos = 0
         total_questoes = len(mapa_questoes)
         
-        for idx, q_num in enumerate(sorted(mapa_questoes.keys())):
+        for idx, q_num in enumerate(ordem_questoes):
             if idx < len(respostas_aluno):
                 letra_marcada = respostas_aluno[idx]
                 id_marcado = mapa_questoes[q_num].get(letra_marcada)
