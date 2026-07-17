@@ -86,5 +86,5 @@ python3 shc_3_0.py --submit 03 acbbd
 ### Passo 4 — Gerar o relatório de notas
 
 ```bash
-python3 shc_3_0.py --report
+python3 shc_3_0.py --report/
 ```
