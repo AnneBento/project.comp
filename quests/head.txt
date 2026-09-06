@@ -1,0 +1,2 @@
+% Cabeçalho da prova em LateX
+	extbf{Instruções:} Marque apenas uma alternativa por questão.\\[0.2cm]

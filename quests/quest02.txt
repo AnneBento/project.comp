@@ -1,0 +1,8 @@
+%% -- QUESTÃO 02 --
+
+\quest.
+
+\item{1, c}
+\item{2, e}
+\item{3, e}
+\item{4, e}

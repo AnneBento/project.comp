@@ -1,0 +1,175 @@
+\documentclass[10pt,a4paper,twocolumn]{report}
+    \usepackage[utf8]{inputenc}
+    \usepackage[portuguese,brazilian]{babel}
+    \usepackage{amsmath}
+    \usepackage{amsfonts}
+    \usepackage{amssymb}
+    \usepackage{enumitem}
+    \usepackage{anysize}
+    \marginsize{1cm}{1cm}{1.5cm}{1.5cm}
+    \begin{document}
+    \noindent\textbf{SERIAL DA PROVA: 01} \hfill \textbf{Provas Embaralhadas}\\
+\rule{\linewidth}{0.2mm}\\
+% Cabeçalho da prova em LateX
+	extbf{Instruções:} Marque apenas uma alternativa por questão.\\[0.2cm]
+
+ \begin{enumerate}[label=\arabic*., ref=\arabic*]
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+ \end{enumerate}
+
+\vspace{0.3cm}
+\noindent Matrícula: ['123456', 'Cris']\\ Nome: Cris \\ Serial da Prova: \textbf{01}\\
+\begin{tabular}{|l|l|l|}\hline
+01  &  02  &  03 \\ \hline 
+    \\ \hline 
+\end{tabular}
+
+% Rodapé da prova
+\vfill \centerline{Boa Sorte!}
+
+\clearpage
+
+\noindent\textbf{SERIAL DA PROVA: 02} \hfill \textbf{Provas Embaralhadas}\\
+\rule{\linewidth}{0.2mm}\\
+% Cabeçalho da prova em LateX
+	extbf{Instruções:} Marque apenas uma alternativa por questão.\\[0.2cm]
+
+ \begin{enumerate}[label=\arabic*., ref=\arabic*]
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+ \end{enumerate}
+
+\vspace{0.3cm}
+\noindent Matrícula: ['123456', 'Cris']\\ Nome: Richard \\ Serial da Prova: \textbf{02}\\
+\begin{tabular}{|l|l|l|}\hline
+01  &  02  &  03 \\ \hline 
+    \\ \hline 
+\end{tabular}
+
+% Rodapé da prova
+\vfill \centerline{Boa Sorte!}
+
+\clearpage
+
+\noindent\textbf{SERIAL DA PROVA: 03} \hfill \textbf{Provas Embaralhadas}\\
+\rule{\linewidth}{0.2mm}\\
+% Cabeçalho da prova em LateX
+	extbf{Instruções:} Marque apenas uma alternativa por questão.\\[0.2cm]
+
+ \begin{enumerate}[label=\arabic*., ref=\arabic*]
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+ \end{enumerate}
+
+\vspace{0.3cm}
+\noindent Matrícula: ['123456', 'Cris']\\ Nome: Guilherme \\ Serial da Prova: \textbf{03}\\
+\begin{tabular}{|l|l|l|}\hline
+01  &  02  &  03 \\ \hline 
+    \\ \hline 
+\end{tabular}
+
+% Rodapé da prova
+\vfill \centerline{Boa Sorte!}
+
+\clearpage
+
+\noindent\textbf{SERIAL DA PROVA: 04} \hfill \textbf{Provas Embaralhadas}\\
+\rule{\linewidth}{0.2mm}\\
+% Cabeçalho da prova em LateX
+	extbf{Instruções:} Marque apenas uma alternativa por questão.\\[0.2cm]
+
+ \begin{enumerate}[label=\arabic*., ref=\arabic*]
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+    \item .
+    \begin{enumerate}[label=\alph*)]
+        \item 
+        \item 
+        \item 
+        \item 
+    \end{enumerate} 
+ \end{enumerate}
+
+\vspace{0.3cm}
+\noindent Matrícula: ['123456', 'Cris']\\ Nome: Everton \\ Serial da Prova: \textbf{04}\\
+\begin{tabular}{|l|l|l|}\hline
+01  &  02  &  03 \\ \hline 
+    \\ \hline 
+\end{tabular}
+
+% Rodapé da prova
+\vfill \centerline{Boa Sorte!}
+
+\clearpage
+
+\end{document}
