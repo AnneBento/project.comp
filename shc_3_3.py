@@ -8,9 +8,11 @@ import sys
 PATHS = {
     'QUESTS_DIR':'./quests',
     'PROJECT': './project.comp',
-    'STUDENTS':'./students.txt',
+    'STUDENTS':'./data.students', #agora salvo em binário via pickle
     'PROVAS': './provas.txt',
-    'REPORT': './report.txt'
+    'REPORT': './report.txt',
+    'REPORT_NOTAS': './report_notas.txt',
+    'REPORT_ESTATISTICA': './report_estatistica.txt'
 }
 
 # lê o arquivo .comp, onde todos os dados do exame estão salvos e converte esse arquivo em binário
@@ -27,7 +29,41 @@ def save_project(path, data):
     with open(path, 'wb') as f:
         pickle.dump(data, f)
 
+# Salva a lista de alunos no arquivo data.students
+def save_students(students_list):
+    with open(PATHS['STUDENTS'], 'wb') as f:
+        pickle.dump(students_list, f)
 
+# Lê o arquivo data.students. Retorna uma lista vazia se não existir
+def load_students():
+    if os.path.exists(PATHS['STUDENTS']):
+        with open(PATHS['STUDENTS'], 'rb') as f:
+            return pickle.load(f)
+    return []
+
+# Importa o students.txt caso exista e converte para data.students via pickle
+def import_students_txt(txt_path='./students.txt'):
+    if not os.path.exists(txt_path):
+        return []
+    
+    students = []
+    with open(txt_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line_str = line.strip()
+            if not line_str:
+                continue    
+
+            partes = line_str.split('\t', 1) if '\t' in line_str else line_str.split(None, 1)
+
+            if len(partes) >= 2:
+                matricula = partes[0].strip()
+                nome = partes[1].strip().replace("_", "\\_")
+                students.append([matricula, nome])
+            else:
+                students.append([partes[0].strip(), "Estudante sem nome"])
+
+    save_students(students)
+    return students
 
 #---------------------------------------------------------------------------------------------------- LEITURA E PREPARAÇÃO DE ARQUIVOS!
 # essa função lê um arquivo de questão escrito em formato do tipo lateX
@@ -67,8 +103,6 @@ def parse_question_file(quest_dir, filename):
     return {"enunciado": enunciado,
             "alternativas": alternativas}
 
-
-
 # Extrai matricula e nome de cada aluno
 def get_alunos(name):
     
@@ -102,8 +136,6 @@ def get_alunos(name):
 
         return students
 
-
-
 # varre a pasta de questões e mapeia qual é o ID da alternativa correta de cada questão.
 # ela vai conferir se essa questão realmente existe.
 def get_correct_answers(quests_dir):
@@ -128,8 +160,6 @@ def get_correct_answers(quests_dir):
 
     return gabarito_real
 
-
-
 #--------------------------------------------------------------------------------------------------- EXECUÇÃO DOS COMANDOS DO USUÁRIO.
 
 # prepara o ambiente do projeto
@@ -143,8 +173,7 @@ def cmd_criar(num_questoes):
         os.makedirs(quests_dir)
         print(f"Pasta {quests_dir} criada com sucesso.")
 
-
-# cria arquivo head.txt
+    # cria arquivo head.txt
     head_path = os.path.join(quests_dir, "head.txt")
     if not os.path.exists(head_path):
         with open(head_path, 'w', encoding='utf-8') as f:
@@ -155,7 +184,6 @@ def cmd_criar(num_questoes):
             f.write("\\end{flushleft}\n")
             print("Arquivo 'head.txt' criado.")
 
-
     # cria o arquivo tail.txt
     tail_path = os.path.join(quests_dir, "tail.txt")
     if not os.path.exists(tail_path):
@@ -163,7 +191,6 @@ def cmd_criar(num_questoes):
             f.write("% Rodapé da prova\n")
             f.write("\\vfill \\centerline{Fim da Prova!}\n")
         print("Arquivo 'tail.txt' criado.")
-
 
     # arquivos de questões com o template padrão
     for i in range(1, int(num_questoes) + 1):
@@ -182,8 +209,6 @@ def cmd_criar(num_questoes):
         else:
             print(f"Arquivo '{q_filename}' já existe e não foi sobrescrito.")
 
-
-
 # testar uma questão isolada em lateX, monta um documento teX temporário e compila como PDF lateX via subprocess
 def cmd_testar(quest_target):
     quest_dir = PATHS['QUESTS_DIR']
@@ -201,8 +226,7 @@ def cmd_testar(quest_target):
     q_data = parse_question_file(quest_dir, filename)
     if not q_data:
         print(f"Não foi possível ler a questão {filename}")
-        return
-
+        return False
 
     #latex minimalista de teste
     tex_test = """\\documentclass[10pt,a4paper]{article}
@@ -235,7 +259,6 @@ def cmd_testar(quest_target):
         f.write(tex_test)
     print(f"Compilando teste para '{filename}'...")
 
-
     #trava de segurança para o meu uso em windows
     try:
         #agora utiliza o compilador para pdfLatex
@@ -246,15 +269,16 @@ def cmd_testar(quest_target):
         )
         if result.returncode == 0:
             print("[+] Sucesso! Arquivo 'teste_temp.pdf' gerado sem erros de sintaxe TeX.")
+            return True
         else:
             print("[-] Erro na sintaxe do TeX. Verifique o arquivo .log gerado.")
+            return False
     except FileNotFoundError:
         print("[-] ERRO: O executável 'pdflatex' não foi encontrado no Windows.")
         print("    Certifique-se de ter o MiKTeX instalado e adicionado ao PATH do sistema.")
+        return False
 
-
-
-# lê alunos via get_alunos
+# lê alunos via get_alunos ou data.students
 # extrai e embaralha questões via parse_question_file
 # constói o código teX completo com cabeçalho e rodapé 
 # grava os mapeamentos das provas individuais no dicionário VERSIONS dentro do arquivo .comp
@@ -262,10 +286,15 @@ def cmd_provas(qtd_sem_aluno=1):
 
     d = load_project(PATHS['PROJECT'])
 
-
-    students = get_alunos(PATHS['STUDENTS'])
+    # Carrega primeiramente de data.students (pickle) ou recupera do students.txt
+    students = load_students()
     if not students:
-        print(f"Aviso: Arquivo '{PATHS['STUDENTS']}' não encontrado ou vazio. Gerando {qtd_sem_aluno} prova(s) sem pré-preenchimento...")
+        students = get_alunos('./students.txt')
+        if students:
+            save_students(students)
+
+    if not students:
+        print(f"Aviso: Alunos não encontrados. Gerando {qtd_sem_aluno} prova(s) sem pré-preenchimento...")
         students = []
         for i in range(1, qtd_sem_aluno + 1):
             students.append(["", ""])
@@ -283,14 +312,11 @@ def cmd_provas(qtd_sem_aluno=1):
     with open(tail_path, 'r', encoding='utf-8') as f:
         tail_content = f.read()
 
-
-
     #mapeia o arquivo de questões EXISTENTES
     q_files = sorted([f for f in os.listdir(PATHS['QUESTS_DIR']) if f.lower().startswith("quest") and f.lower().endswith(".txt")]) 
     if not q_files:
         print("Nenhuma questão encontrada na pasta 'quests/'.")
         return
-
 
     #preâmbulo do documento teX
     tex_output = """\\documentclass[10pt,a4paper,twocolumn]{report}
@@ -307,7 +333,7 @@ def cmd_provas(qtd_sem_aluno=1):
 
     letras = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     d['VERSIONS'] = {}
-    d['ANULADAS'] = set()
+    d['ANULADAS'] = d.get('ANULADAS', set())
 
     # Aqui acontece o processo da prova de cada aluno
     for idx, student in enumerate(students):
@@ -320,31 +346,22 @@ def cmd_provas(qtd_sem_aluno=1):
         tex_output += "\\rule{\\linewidth}{0.2mm}\\\\\n" 
         tex_output += head_content + "\n"
 
-
         # dados aluno
         # Quantidade de questões ativas
         qtd_q = len(q_files)
 
-        # Montagem dos dados e do cartão de respostas
+        # Montagem dos dados do aluno
         tex_output += "\n\\vspace{0.3cm}\n"
         if not nome and not matricula:
             tex_output += f"\\noindent Matrícula: \\underline{{\\hspace{{3cm}}}} \\\\ Nome: \\underline{{\\hspace{{6cm}}}} \\\\ Serial da Prova: \\textbf{{{serial}}}\\\\\n"
         else:
             tex_output += f"\\noindent Matrícula: {matricula}\\\\ Nome: {nome} \\\\ Serial da Prova: \\textbf{{{serial}}}\\\\\n"
-        tex_output += "\\vspace{0.2cm}\n"
         
-        # Tabela com alinhamento centralizado 
-        tex_output += "\\begin{tabular}{|" + "|".join(["c"] * qtd_q) + "|}\\hline\n"
-        tex_output += "  " + " & ".join([f"{i+1:02d}" for i in range(qtd_q)]) + " \\\\ \\hline \n"
-        tex_output += "  " + " & ".join(["" for _ in range(qtd_q)]) + " \\rule{0pt}{0.4cm} \\\\ \\hline \n"
-        tex_output += "\\end{tabular}\n\n"
-        
-        tex_output += "\\vspace{0.4cm}\n"
+        tex_output += "\\vspace{0.3cm}\n"
         tex_output += "\\rule{\\linewidth}{0.1mm}\\\\\n\\vspace{0.2cm}\n"
 
         tex_output += " \\begin{enumerate}[label=\\arabic*., ref=\\arabic*]\n"
         version_map = {}
-
 
         # embaralha a ordem das questões para o aluno
         shuffled_q_files = list(q_files)
@@ -362,7 +379,6 @@ def cmd_provas(qtd_sem_aluno=1):
             tex_output += f"    \\item {q_data['enunciado']}\n"
             tex_output += "    \\begin{enumerate}[label=\\alph*)]\n"
 
-
             #embaralhamento das alternativas da questao
             alts = list(q_data['alternativas'])
             random.shuffle(alts)
@@ -379,12 +395,28 @@ def cmd_provas(qtd_sem_aluno=1):
 
         tex_output += " \\end{enumerate}\n"
 
+        # Cartão de respostas adaptado a 5 colunas
+        tex_output += "\n\\vspace{0.4cm}\n"
+        tex_output += "\\noindent \\textbf{Gabarito}\\\\[0.15cm]\n"
+        tex_output += "{\\small \\setlength{\\tabcolsep}{4pt}\n"
+        
+        
+        max_cols_per_row = 5
+        for chunk_start in range(0, qtd_q, max_cols_per_row):
+            chunk_end = min(chunk_start + max_cols_per_row, qtd_q)
+            num_cols = chunk_end - chunk_start
+            
+            tex_output += "\\begin{tabular}{|" + "|".join(["c"] * num_cols) + "|}\\hline\n"
+            tex_output += "  " + " & ".join([f"{i+1:02d}" for i in range(chunk_start, chunk_end)]) + " \\\\ \\hline \n"
+            tex_output += "  " + " & ".join(["" for _ in range(num_cols)]) + " \\rule{0pt}{0.4cm} \\\\ \\hline \n"
+            tex_output += "\\end{tabular}\\\\[0.15cm]\n"
+            
+        tex_output += "}\n\n"
 
         #rodapé
         tail_clean = tail_content.replace("\\end{document}", "")
         tex_output += tail_clean + "\n"
         tex_output += "\\clearpage\n\n"
-
 
         #guarda a estrutura da prova do aluno no dicionário
         d['VERSIONS'][serial] = {
@@ -395,7 +427,6 @@ def cmd_provas(qtd_sem_aluno=1):
         }
 
     tex_output += "\\end{document}\n"
-
 
     #agora ele abrir e vai salvar o arquivo teX e atualizar o .comp
     with open(PATHS['PROVAS'], 'w', encoding='utf-8') as f:
@@ -418,23 +449,22 @@ def cmd_provas(qtd_sem_aluno=1):
     except FileNotFoundError:
         print("'pdflatex' não instalado/encontrado. O arquivo '.tex' e o mapa '.comp' foram salvos com sucesso.")
 
-
-
-
-#registrar no arquivo (.comp) o cartão de respostas que o professor digita para determinado aluno.
-def cmd_submeter(serial, respostas_str):
+# registrar no arquivo (.comp) o cartão de respostas que o professor digita para determinado aluno.
+# registrar no arquivo (.comp) o cartão de respostas que o professor digita para determinado aluno.
+def cmd_submeter(serial, respostas_str, interativo=True):
     d = load_project(PATHS['PROJECT'])
 
-    #garante que o dicionário esteja no projeto
+    # garante que o dicionário esteja no projeto
     if 'SUBMITS' not in d:
         d['SUBMITS'] = {}
 
     versions = d.get('VERSIONS', {})
 
-    #verifica se o serial existe nas provas geradas
+    # verifica se o serial existe nas provas geradas
     if serial not in versions:
-        print(f"Erro: O serial '{serial}' não foi encontrado no projeto.")
-        return 
+        msg = f"Erro: O serial '{serial}' não foi encontrado no projeto."
+        print(msg)
+        return False, msg
 
     aluno_infor = versions[serial]
     nome = aluno_infor['nome'].replace("\\_", "_")
@@ -444,29 +474,70 @@ def cmd_submeter(serial, respostas_str):
 
     respostas_limpas = respostas_str.lower().replace(" ", "").strip()
 
-    #validação do númerode respostas enviadas
+    # validação do número de respostas enviadas
     if len(respostas_limpas) != total_esperado:
-        print(f"Erro de validação! A prova esperava {total_esperado} respostas, mas foram enviadas {len(respostas_limpas)} ('{respostas_limpas}').")
-        return
+        msg = f"Erro de validação! A prova esperava {total_esperado} respostas, mas foram enviadas {len(respostas_limpas)} ('{respostas_limpas}')."
+        print(msg)
+        return False, msg
 
-    print("\n")
-    print("Confirmação de submissão")
-    print(f"Serial:     {serial}")
-    print(f"Aluno:      {nome}")
-    print(f"Matrícula:  {matricula}")
-    print(f"Respostas:  {respostas_limpas.upper()}")
-    print("\n")
+    # Simula a gravação temporária para calcular a nota de prévia
+    d_temp = dict(d)
+    d_temp['SUBMITS'] = dict(d.get('SUBMITS', {}))
+    d_temp['SUBMITS'][serial] = list(respostas_limpas)
+    nota_preview = calcular_nota_aluno(serial, d_temp)
 
-    confirmacao = input("Deseja confirmar o registro para este aluno? [S/n]: ").strip().lower()
+    if interativo:
+        print("\n")
+        print("Confirmação de submissão")
+        print(f"Serial:     {serial}")
+        print(f"Aluno:      {nome}")
+        print(f"Matrícula:  {matricula}")
+        print(f"Respostas:  {respostas_limpas.upper()}")
+        print(f"Nota:       {nota_preview:.1f}")
+        print("\n")
 
-    if confirmacao in ['', 's', 'sim']:
+        confirmacao = input("Deseja confirmar o registro para este aluno? [S/n]: ").strip().lower()
+
+        if confirmacao in ['', 's', 'sim']:
+            d['SUBMITS'][serial] = list(respostas_limpas)
+            save_project(PATHS['PROJECT'], d)
+            msg = f"\nRespostas do serial {serial} ({nome}) salvas com sucesso!\n"
+            print(msg)
+            return True, msg
+        else: 
+            msg = "\nOperação cancelada. Nenhuma alteração foi salva.\n"
+            print(msg)
+            return False, msg
+    else:
         d['SUBMITS'][serial] = list(respostas_limpas)
         save_project(PATHS['PROJECT'], d)
-        print(f"\nRespostas do serial {serial} ({nome}) salvas com sucesso!\n")
-    else: 
-        print("\nOperação cancelada. Nenhuma alteração foi salva.\n")
-    
+        return True, f"Submissão do Serial {serial} realizada. Nota: {nota_preview:.1f}"
 
+# Função auxiliar para cálculo direto de nota do aluno
+def calcular_nota_aluno(serial, d_project):
+    submissao = d_project.get('SUBMITS', {}).get(serial)
+    if not submissao: return 0.0
+
+    info = d_project['VERSIONS'][serial]
+    mapa_prova, ordem_visual = info['map'], info['order']
+    anuladas = d_project.get('ANULADAS', set())
+    gabarito_oficial = get_correct_answers(PATHS['QUESTS_DIR'])
+
+    quest_validas = len(ordem_visual) - len(anuladas)
+    acertos = 0
+
+    for pos_idx, letra_marcada in enumerate(submissao):
+        if pos_idx >= len(ordem_visual): break
+        q_num = ordem_visual[pos_idx]
+        if q_num in anuladas: continue
+
+        item_correto = gabarito_oficial.get(q_num)
+        item_marcado = mapa_prova.get(q_num, {}).get(letra_marcada.lower())
+
+        if item_marcado and item_marcado == item_correto:
+            acertos += 1
+
+    return (acertos / quest_validas * 10) if quest_validas > 0 else 0.0
 
 #painel visual para o usuário
 #percentual de provas corrigidas 
@@ -485,11 +556,9 @@ def cmd_status():
     pendentes = total_provas - total_entregues
     porcentagem = (total_entregues / total_provas * 100) if total_provas > 0 else 0.0
 
-
     bar_len = 30
     filled = int(bar_len * total_entregues // total_provas) if total_provas > 0 else 0
     bar = '█' * filled + '░' * (bar_len - filled)
-
 
     print("\n" + "-" * 60)
     print(f"{'STATUS DE SUBMISSÃO E PAINEL DA TURMA':^60}")
@@ -520,8 +589,6 @@ def cmd_status():
     else:
         print("\nTodas as provas foram submetidas com sucesso!")
     print("\n")
-
-
 
 #anula uma questão específica
 # anula ou reativa uma questão específica com confirmação de segurança
@@ -577,7 +644,23 @@ def cmd_ressubmissao(num_quest_visual):
     else:
         print("\nOperação cancelada. Nenhuma alteração foi feita.\n")
 
+# Re-corrigir submissões pós alteração de dados das questões
+def cmd_recorrigir():
+    d = load_project(PATHS['PROJECT'])
+    submits = d.get('SUBMITS', {})
+    
+    if not submits:
+        print("[-] Nenhuma submissão para recorrigir.")
+        return
 
+    print("\n Recorrigindo provas...")
+    for serial in sorted(submits.keys()):
+        nota = calcular_nota_aluno(serial, d)
+        nome = d['VERSIONS'][serial]['nome'].replace("\\_", "_")
+        print(f" Serial {serial} ({nome}): Nova Nota = {nota:.1f}")
+
+    save_project(PATHS['PROJECT'], d)
+    print("[+] Recorreção concluída com sucesso!")
 
 #correção e estatística 
 #cruza o mapeamento da prova de cada aluno, com as respostas enviadas e o gabarito real
@@ -601,7 +684,7 @@ def cmd_relatar():
     report_lines.append(f"\n{'SERIAL':<8} {'ESTUDANTE':<32} {'ACERTOS':<9} {'ERROS':<8} {'EM BRANCO':<11} {'NOTA':<6}")
     report_lines.append("-" * 75)
     
-    stats_questoes = {q_num: {'certas': 0, 'erradas': 0, 'branco': 0} for q_num in gabarito_atual.keys()}
+    estatisticas_questoes = {q_num: {'certas': 0, 'erradas': 0, 'branco': 0} for q_num in gabarito_atual.keys()}
     
     for serial, v_info in sorted(versions.items()):
         nome = v_info['nome'].replace("\\_", "_")
@@ -631,20 +714,21 @@ def cmd_relatar():
     
                 if letra_marcada in ['x', '-']:
                     em_branco += 1
-                    if q_num in stats_questoes:
-                        stats_questoes[q_num]['branco'] += 1
+                    if q_num in estatisticas_questoes:
+                        estatisticas_questoes[q_num]['branco'] += 1
                 else:
                     id_marcado = mapa_questoes[q_num].get(letra_marcada)
                     id_correto = gabarito_atual.get(q_num)
     
-                    if id_marcado and id_marcado == id_correto:
-                        acertos += 1
-                        if q_num in stats_questoes:
-                            stats_questoes[q_num]['certas'] += 1
-                    else:
-                        erros += 1
-                        if q_num in stats_questoes:
-                            stats_questoes[q_num]['erradas'] += 1
+                    if id_marcado and id_correto:
+                        if id_marcado == id_correto:
+                            acertos += 1
+                            if q_num in estatisticas_questoes:
+                                estatisticas_questoes[q_num]['certas'] += 1
+                        else:
+                            erros += 1
+                            if q_num in estatisticas_questoes:
+                                estatisticas_questoes[q_num]['erradas'] += 1
     
         # Cálculo proporcional de nota apenas com as questões válidas
         nota = (acertos / total_validas) * 10.0 if total_validas > 0 else 0.0
@@ -656,15 +740,15 @@ def cmd_relatar():
     report_lines.append(f"{'QUESTÃO':<12} {'ACERTOS (CERTAS)':<20} {'ERROS (ERRADAS)':<20} {'EM BRANCO':<15}")
     report_lines.append("-" * 75)
     
-    for q_num in sorted(stats_questoes.keys(), key=lambda x: int(x) if x.isdigit() else x):
+    for q_num in sorted(estatisticas_questoes.keys(), key=lambda x: int(x) if x.isdigit() else x):
         q_label = f"Questão {q_num}"
         if q_num in anuladas:
             q_label += " (ANULADA)"
             report_lines.append(f"{q_label:<12} {'--':<20} {'--':<20} {'--':<15}")
         else:
-            c = stats_questoes[q_num]['certas']
-            e = stats_questoes[q_num]['erradas']
-            b = stats_questoes[q_num]['branco']
+            c = estatisticas_questoes[q_num]['certas']
+            e = estatisticas_questoes[q_num]['erradas']
+            b = estatisticas_questoes[q_num]['branco']
             report_lines.append(f"{q_label:<12} {c:<20} {e:<20} {b:<15}")
     
     report_text = "\n".join(report_lines)
@@ -675,6 +759,73 @@ def cmd_relatar():
     print(report_text)
     print(f"\n[+] Relatório consolidado salvo em: {PATHS['REPORT']}\n")
 
+# Gera individualmente o Relatório Geral de Notas
+def cmd_relatorio_notas():
+    d = load_project(PATHS['PROJECT'])
+    versions = d.get('VERSIONS', {})
+    submits = d.get('SUBMITS', {})
+
+    if not versions or not submits:
+        print("[-] Sem dados suficientes para gerar relatório de notas.")
+        return
+
+    linhas = ["\n================ RELATÓRIO DE NOTAS ================\n", f"{'Serial':<8} {'Matrícula':<12} {'Aluno':<30} {'Nota':<6}", "-" * 60]
+
+    for serial, info in sorted(versions.items()):
+        if serial in submits:
+            nota = calcular_nota_aluno(serial, d)
+            nome = info['nome'].replace("\\_", "_")
+            linhas.append(f"{serial:<8} {info['matricula']:<12} {nome:<30} {nota:<6.1f}")
+
+    conteudo = "\n".join(linhas)
+    print(conteudo)
+    with open(PATHS['REPORT_NOTAS'], 'w', encoding='utf-8') as f: f.write(conteudo)
+
+# Gera individualmente o Relatório Estatístico
+def cmd_relatorio_estatistico():
+    d = load_project(PATHS['PROJECT'])
+    versions, submits = d.get('VERSIONS', {}), d.get('SUBMITS', {})
+    anuladas = d.get('ANULADAS', set())
+
+    if not versions or not submits:
+        print("[-] Sem dados suficientes para estatísticas.")
+        return
+
+    gabarito_oficial = get_correct_answers(PATHS['QUESTS_DIR'])
+    q_files = sorted([f for f in os.listdir(PATHS['QUESTS_DIR']) if f.lower().startswith("quest") and f.lower().endswith(".txt")])
+    estatisticas = {f"{i+1:02d}": {'acertos': 0, 'erros': 0} for i in range(len(q_files))}
+
+    for serial, submissao in submits.items():
+        if serial not in versions: continue
+        info = versions[serial]
+        mapa_prova, ordem_visual = info['map'], info['order']
+
+        for pos_idx, letra in enumerate(submissao):
+            if pos_idx >= len(ordem_visual): break
+            q_num = ordem_visual[pos_idx]
+            if q_num in anuladas: continue
+
+            item_correto = gabarito_oficial.get(q_num)
+            item_marcado = mapa_prova.get(q_num, {}).get(letra.lower())
+
+            if item_marcado and item_correto:
+                if item_marcado == item_correto:
+                    estatisticas[q_num]['acertos'] += 1
+                else:
+                    estatisticas[q_num]['erros'] += 1
+
+    linhas = ["\n================ ESTATÍSTICA POR QUESTÃO ================\n"]
+    for q_num, stat in sorted(estatisticas.items()):
+        if q_num in anuladas:
+            linhas.append(f"Questão {q_num}: [ANULADA]")
+        else:
+            tot = stat['acertos'] + stat['erros']
+            pct = (stat['acertos'] / tot * 100) if tot > 0 else 0
+            linhas.append(f"Questão {q_num}: {stat['acertos']} Acertos | {stat['erros']} Erros ({pct:.1f}% de acerto)")
+
+    conteudo = "\n".join(linhas)
+    print(conteudo)
+    with open(PATHS['REPORT_ESTATISTICA'], 'w', encoding='utf-8') as f: f.write(conteudo)
 
 #buscar aluno
 def cmd_buscar(termo_busca):
@@ -724,14 +875,14 @@ def cmd_buscar(termo_busca):
                         id_marcado = mapa_quest[q_num].get(letra_marcada)
                         id_correto = gabarito_atual.get(q_num)
 
-                        if id_marcado and id_marcado == id_correto:
-                            acertos += 1
-                        else:
-                            erros += 1
+                        if id_marcado and id_correto:
+                            if id_marcado == id_correto:
+                                acertos += 1
+                            else:
+                                erros += 1
 
             nota = (acertos/total_validas) * 10.0 if total_validas > 0 else 0.0 
             resultados.append((serial, nome, matricula, f"{nota:.2f}", acertos, erros, em_branco, total_validas))
-
 
     if not resultados:
         print(f'Nenhum aluno encontrado com o termo: {termo_busca}')
@@ -753,8 +904,6 @@ def cmd_buscar(termo_busca):
             print("\n")
         print("\n")
 
-
-
 #menu
 def cmd_ajuda():
     manual = """
@@ -770,12 +919,13 @@ def cmd_ajuda():
         submeter <serial> <res> Registra o cartão de respostas para o serial da prova (ex: 01 abcde).
         status                  Exibe o painel de submissões e o progresso da turma.
         resubmeter <q>          Anula ou reativa a questão <q> para o cálculo das notas.
+        recorrigir              Recalcula todas as notas registradas após alterações nas questões.
         relatório               Calcula as notas finais, exibe o relatório da turma e salva o report.txt.
+        relatorio-notas         Gera o relatório isolado com a lista de notas por aluno.
+        relatorio-estatistica   Gera o relatório isolado com as estatísticas por questão.
         ajuda, --help           Exibe este manual de instruções."""
 
     print(manual)
-
-
 
 #interface 
 if __name__ == "__main__":
@@ -787,7 +937,7 @@ if __name__ == "__main__":
 
     if cmd in ["--criar"]:
         if len(sys.argv) < 3:
-            print("Informe a quantidade de questões. Exemplo: python3 shc_3_0.py --criar 4")
+            print("Informe a quantidade de questões. Exemplo: python3 shc.py --criar 4")
         else:
             try:
                 qtd = int(sys.argv[2])
@@ -798,10 +948,9 @@ if __name__ == "__main__":
             except ValueError:
                 print("Erro: Digite um número inteiro para a quantidade de questões.")
 
-
     elif cmd in ["--testar"]:
         if len(sys.argv) < 3:
-            print("Erro: Informe a questão que deseja testar. Exemplo: python 3 shc_3_0.p y --testar 1")
+            print("Erro: Informe a questão que deseja testar. Exemplo: python3 shc.py --testar 1")
         else:
             cmd_testar(sys.argv[2])
 
@@ -813,7 +962,7 @@ if __name__ == "__main__":
 
     elif cmd in ["--submeter"]:
         if len(sys.argv) < 4:
-            print("Erro: Forneça o serial e as respostas. Exemplo: python3 shc_3_0.py --submeter 01 abcdx")
+            print("Erro: Forneça o serial e as respostas. Exemplo: python3 shc.py --submeter 01 abcdx")
         else:
             respostas_brutas = "".join(sys.argv[3:])
             cmd_submeter(sys.argv[2], respostas_brutas)
@@ -822,16 +971,25 @@ if __name__ == "__main__":
         cmd_status()
     elif cmd in ["--resubmeter"]:
         if len(sys.argv) < 3:
-            print("Erro: informe a questão a ser anulada. Exemplo: python3 shc_3_0.py --resubmeter 1")
+            print("Erro: informe a questão a ser anulada. Exemplo: python3 shc.py --resubmeter 1")
         else:
             cmd_ressubmissao(sys.argv[2])
+
+    elif cmd in ["--recorrigir"]:
+        cmd_recorrigir()
 
     elif cmd in ["--relatório"]:
         cmd_relatar()
 
-    elif cmd in["--buscar"]:
+    elif cmd in ["--relatorio-notas"]:
+        cmd_relatorio_notas()
+
+    elif cmd in ["--relatorio-estatistica"]:
+        cmd_relatorio_estatistico()
+
+    elif cmd in ["--buscar"]:
         if len(sys.argv) < 3:
-            print("Erro: informe o termo de busca. Exemplo: python3 shc_3_0.py --buscar")
+            print("Erro: informe o termo de busca. Exemplo: python3 shc.py --buscar Ricardo")
         else:
             termo = " ".join(sys.argv[2:])
             cmd_buscar(termo)
