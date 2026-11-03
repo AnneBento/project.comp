@@ -775,11 +775,17 @@ def cmd_relatorio_notas():
         if serial in submits:
             nota = calcular_nota_aluno(serial, d)
             nome = info['nome'].replace("\\_", "_")
-            linhas.append(f"{serial:<8} {info['matricula']:<12} {nome:<30} {nota:<6.1f}")
+            
+            # Trata se matricula for uma lista ou outro tipo
+            mat_raw = info.get('matricula', 'N/A')
+            matricula_str = str(mat_raw[0]) if isinstance(mat_raw, list) else str(mat_raw)
+            
+            linhas.append(f"{serial:<8} {matricula_str:<12} {nome:<30} {nota:<6.1f}")
 
     conteudo = "\n".join(linhas)
     print(conteudo)
-    with open(PATHS['REPORT_NOTAS'], 'w', encoding='utf-8') as f: f.write(conteudo)
+    with open(PATHS['REPORT_NOTAS'], 'w', encoding='utf-8') as f: 
+        f.write(conteudo)
 
 # Gera individualmente o Relatório Estatístico
 def cmd_relatorio_estatistico():
